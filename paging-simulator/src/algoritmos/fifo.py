@@ -23,7 +23,7 @@ def simular_fifo(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
         if traco:
             traco.write(f'FAULT\t{pagina} - {quadros}\n')
             
-    print(f'\nAcertos: {acertos} - Faltas: {faltas} - Quadros: {n_quadros}')
+    print(f'\nAcertos: {acertos} - Faltas: {faltas} - Quadros: {n_quadros}') # Teste, remover depois
     return Resultado(
         algoritmo="FIFO",
         n_quadros=n_quadros,
