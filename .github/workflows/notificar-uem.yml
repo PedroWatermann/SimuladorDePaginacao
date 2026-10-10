@@ -1,0 +1,18 @@
+name: Notificar UEM
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispara workflow no UEM
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.UEM_DISPATCH_PAT }}" \
+            https://api.github.com/repos/PedroWatermann/UEM_Eng_Soft/dispatches \
+            -d '{"event_type":"submodule-updated"}'
