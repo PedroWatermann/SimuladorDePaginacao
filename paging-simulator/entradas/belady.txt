@@ -1,0 +1,2 @@
+# sequência que provoca a Anomalia de Belady no FIFO (3 e 4 quadros)
+1 2 3 4 1 2 5 1 2 3 4 5
