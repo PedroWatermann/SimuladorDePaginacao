@@ -1,43 +1,50 @@
 from simulador import Sequencia, Traco, Resultado
+from traco import traco_linha, traco_resumo
 
 def simular_lru(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
-    if n_quadros <= 0: 
+    if n_quadros <= 0:
         raise ValueError("O parâmetro n_quadros deve ser maior que 0")
-    
-    quadros: list[int] = []
+
+    quadros: list[int | None] = [None] * n_quadros
+    ultimo_acesso: dict[int, int] = {}
     faltas: int = 0
     acertos: int = 0
-    
-    for pagina in seq.paginas:
+
+    for instante, pagina in enumerate(seq.paginas):
         if pagina in quadros:
             acertos += 1
-            quadros.remove(pagina)
-            quadros.append(pagina)
+            ultimo_acesso[pagina] = instante
             if traco:
-                traco.write(f'HIT\t{pagina} - {quadros}\n')
-            continue 
-        
+                traco_linha(traco, 'LRU', pagina, quadros, False, None)
+            continue
+
         faltas += 1
-        if len(quadros) == n_quadros:
-            quadros.pop(0)
-        quadros.append(pagina)
-        
+
+        vitima: int | None = None
+        if None in quadros:
+            posicao: int = quadros.index(None)
+        else:
+            posicao = 0
+            for i in range(1, n_quadros):
+                if ultimo_acesso[quadros[i]] < ultimo_acesso[quadros[posicao]]:
+                    posicao = i
+            vitima = quadros[posicao]
+            del ultimo_acesso[vitima]
+
+        quadros[posicao] = pagina
+        ultimo_acesso[pagina] = instante
+
         if traco:
-            traco.write(f'FAULT\t{pagina} - {quadros}\n')
-            
-    print(f'\nAcertos: {acertos} - Faltas: {faltas} - Quadros: {n_quadros}') # Teste, remover depois
-    return Resultado(
+            traco_linha(traco, 'LRU', pagina, quadros, True, vitima)
+
+    resultado: Resultado = Resultado(
         algoritmo="LRU",
         n_quadros=n_quadros,
         faltas=faltas,
         acertos=acertos
     )
-    
-# Testes, remover depois
-if __name__ == '__main__':
-    import sys
-    
-    lista = Sequencia(paginas=[1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5])
-    
-    simular_lru(lista, 3, sys.stdout) # 10 faltas, 2 acertos
-    simular_lru(lista, 4, sys.stdout) # 8 faltas, 4 acertos
+
+    if traco:
+        traco_resumo(traco, resultado)
+
+    return resultado

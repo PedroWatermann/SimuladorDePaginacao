@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Simulador de paginação: dependência do gráfico instalada localmente
+.deps/

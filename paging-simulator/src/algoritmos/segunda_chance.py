@@ -1,53 +1,53 @@
 from simulador import Sequencia, Traco, Resultado
+from traco import traco_linha, traco_resumo
 
-def segunda_chance(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
+def simular_segunda_chance(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
     if n_quadros <= 0:
         raise ValueError("O parâmetro n_quadros deve ser maior que 0")
 
-    quadros: list[int] = []
+    quadros: list[int | None] = [None] * n_quadros
     referencia: dict[int, int] = {}
+    proximo: int = 0
     faltas: int = 0
     acertos: int = 0
-    
+
     for pagina in seq.paginas:
         if pagina in quadros:
             acertos += 1
-            
+
             referencia[pagina] = 1
-            
+
             if traco:
-                traco.write(f'HIT\t{pagina} - {[(p, referencia[p]) for p in quadros]}\n')
-            continue 
-        
+                traco_linha(traco, 'Segunda Chance', pagina, quadros, False, None)
+            continue
+
         faltas += 1
-        
-        if len(quadros) == n_quadros:
-            while referencia[quadros[0]] == 1:
-                mais_antiga: int = quadros.pop(0)
-                referencia[mais_antiga] = 0
-                quadros.append(mais_antiga)
-                
-            del referencia[quadros.pop(0)]
-        
-        quadros.append(pagina)
-        referencia[pagina] = 0
-    
+
+        # Zera o bit e avança enquanto R = 1. Se todas tiverem R = 1, dá a volta inteira e tira a mais antiga (igual ao FIFO)
+        while quadros[proximo] is not None and referencia[quadros[proximo]] == 1:
+            referencia[quadros[proximo]] = 0
+            proximo = (proximo + 1) % n_quadros
+
+        vitima: int | None = quadros[proximo]
+        if vitima is not None:
+            del referencia[vitima]
+
+        quadros[proximo] = pagina
+        # Convenção: o bit R é ligado na carga e a cada acerto
+        referencia[pagina] = 1
+        proximo = (proximo + 1) % n_quadros
+
         if traco:
-            traco.write(f'FAULT\t{pagina} - {[(p, referencia[p]) for p in quadros]}\n')
-    
-    print(f'\nAcertos: {acertos} - Faltas: {faltas} - Quadros: {n_quadros}') # Teste, remover depois
-    return Resultado(
+            traco_linha(traco, 'Segunda Chance', pagina, quadros, True, vitima)
+
+    resultado: Resultado = Resultado(
         algoritmo="Segunda Chance",
         n_quadros=n_quadros,
         faltas=faltas,
         acertos=acertos
     )
 
-# Testes, remover depois
-if __name__ == '__main__':
-    import sys
-    
-    lista = Sequencia(paginas=[1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5])
-    
-    segunda_chance(lista, 3, sys.stdout) # 10 faltas, 2 acertos
-    segunda_chance(lista, 4, sys.stdout) # 8 faltas, 4 acertos
+    if traco:
+        traco_resumo(traco, resultado)
+
+    return resultado
