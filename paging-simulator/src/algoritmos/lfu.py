@@ -27,8 +27,16 @@ def simular_lfu(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
         if None in quadros:
             posicao: int = quadros.index(None)
         else:
-            vitima = min(quadros, key=lambda p: (acessos[p], chegada[p]))
-            posicao = quadros.index(vitima)
+            # Sai a de menos acessos; no empate, sai a que chegou primeiro
+            posicao = 0
+            for i in range(1, n_quadros):
+                candidata: int = quadros[i]
+                atual: int = quadros[posicao]
+                if acessos[candidata] < acessos[atual]:
+                    posicao = i
+                elif acessos[candidata] == acessos[atual] and chegada[candidata] < chegada[atual]:
+                    posicao = i
+            vitima = quadros[posicao]
             del acessos[vitima]
             del chegada[vitima]
 

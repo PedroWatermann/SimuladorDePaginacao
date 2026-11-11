@@ -24,8 +24,11 @@ def simular_lru(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
         if None in quadros:
             posicao: int = quadros.index(None)
         else:
-            vitima = min(quadros, key=lambda p: ultimo_acesso[p])
-            posicao = quadros.index(vitima)
+            posicao = 0
+            for i in range(1, n_quadros):
+                if ultimo_acesso[quadros[i]] < ultimo_acesso[quadros[posicao]]:
+                    posicao = i
+            vitima = quadros[posicao]
             del ultimo_acesso[vitima]
 
         quadros[posicao] = pagina

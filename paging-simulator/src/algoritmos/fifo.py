@@ -19,6 +19,7 @@ def simular_fifo(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
 
         faltas += 1
 
+        # Enquanto a memória não enche, quadros[proximo] é None: entra no quadro livre, sem vítima
         vitima: int | None = quadros[proximo]
         quadros[proximo] = pagina
         proximo = (proximo + 1) % n_quadros

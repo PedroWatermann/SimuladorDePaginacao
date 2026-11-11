@@ -22,8 +22,15 @@ def simular_otimo(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
         if None in quadros:
             posicao: int = quadros.index(None)
         else:
-            vitima = max(quadros, key=lambda p: proximo_uso(seq, i, p)) # max() itera entre os elementos e key define sobre qual propriedade do elemento será feita a avaliação do maior para se obter ele. proximo_uso apenas calcula a posição em que a página será referenciada novamente
-            posicao = quadros.index(vitima)
+            # Página que não volta tem distância len(seq.paginas); no empate fica o primeiro quadro (só troca se for maior)
+            posicao = 0
+            maior_distancia: int = proximo_uso(seq, i, quadros[0])
+            for q in range(1, n_quadros):
+                distancia: int = proximo_uso(seq, i, quadros[q])
+                if distancia > maior_distancia:
+                    maior_distancia = distancia
+                    posicao = q
+            vitima = quadros[posicao]
 
         quadros[posicao] = pagina
 

@@ -1,14 +1,19 @@
-import argparse
 import os
 import random
 import sys
 
 def gerar_sequencial(n_acessos: int, n_paginas: int) -> list[int]:
-    return [i % n_paginas for i in range(n_acessos)]
+    seq: list[int] = []
+    for i in range(n_acessos):
+        seq.append(i % n_paginas)
+    return seq
 
 def gerar_aleatorio(n_acessos: int, n_paginas: int, semente: int) -> list[int]:
     rng = random.Random(semente)
-    return [rng.randrange(n_paginas) for _ in range(n_acessos)]
+    seq: list[int] = []
+    for _ in range(n_acessos):
+        seq.append(rng.randrange(n_paginas))
+    return seq
 
 def gerar_localidade(n_acessos: int, n_paginas: int, janela: int, semente: int) -> list[int]:
     rng = random.Random(semente)
@@ -28,41 +33,87 @@ def gravar_sequencia(seq: list[int], cabecalho: str, caminho: str) -> None:
 
     with open(caminho, 'w', encoding='utf-8') as arquivo:
         arquivo.write(f'# {cabecalho}\n')
+
         for i in range(0, len(seq), 20):
-            arquivo.write(' '.join(str(pagina) for pagina in seq[i:i + 20]) + '\n')
+            linha: list[str] = []
+            for pagina in seq[i:i + 20]:
+                linha.append(str(pagina))
+            arquivo.write(' '.join(linha) + '\n')
+
+USO: str = 'Uso: python3 gerador.py --modo MODO --saida ARQUIVO [--acessos N] [--paginas N] [--janela N] [--semente N]'
+
+def ler_argumentos(argv: list[str]) -> dict | None:
+    args: dict = {
+        'modo': None,
+        'saida': None,
+        'acessos': 500,
+        'paginas': 30,
+        'janela': 4,
+        'semente': 42,
+    }
+
+    i: int = 0
+    while i < len(argv):
+        opcao: str = argv[i]
+        nome: str = opcao[2:]
+
+        if not opcao.startswith('--') or nome not in args:
+            print(f'Erro: opção desconhecida {opcao}')
+            print(USO)
+            return None
+        if i + 1 >= len(argv):
+            print(f'Erro: falta o valor de {opcao}')
+            return None
+
+        valor: str = argv[i + 1]
+        if nome == 'modo' or nome == 'saida':
+            args[nome] = valor
+        else:
+            if not valor.isdigit():
+                print(f'Erro: o valor de {opcao} deve ser um número inteiro')
+                return None
+            args[nome] = int(valor)
+        i += 2
+
+    if args['modo'] is None or args['saida'] is None:
+        print('Erro: --modo e --saida são obrigatórios')
+        print(USO)
+        return None
+
+    return args
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description='Gerador de sequências de referências a páginas')
-    parser.add_argument('--modo', required=True, choices=['sequencial', 'aleatorio', 'localidade'], help='padrão de acesso')
-    parser.add_argument('--saida', required=True, help='arquivo em que a sequência é gravada')
-    parser.add_argument('--acessos', type=int, default=500, help='número de referências (padrão: 500)')
-    parser.add_argument('--paginas', type=int, default=30, help='número de páginas distintas (padrão: 30)')
-    parser.add_argument('--janela', type=int, default=4, help='tamanho do working set no modo localidade (padrão: 4)')
-    parser.add_argument('--semente', type=int, default=42, help='semente do gerador (padrão: 42)')
-    args = parser.parse_args(argv)
-
-    if args.acessos <= 0 or args.paginas <= 0:
-        print('Erro: --acessos e --paginas devem ser maiores que 0', file=sys.stderr)
-        return 1
-    if not 0 < args.janela <= args.paginas:
-        print('Erro: --janela deve estar entre 1 e o número de páginas', file=sys.stderr)
+    args: dict | None = ler_argumentos(argv)
+    if args is None:
         return 1
 
-    if args.modo == 'sequencial':
-        seq: list[int] = gerar_sequencial(args.acessos, args.paginas)
-        cabecalho: str = f'modo=sequencial acessos={args.acessos} paginas={args.paginas}'
-    elif args.modo == 'aleatorio':
-        seq = gerar_aleatorio(args.acessos, args.paginas, args.semente)
-        cabecalho = f'modo=aleatorio acessos={args.acessos} paginas={args.paginas} semente={args.semente}'
+    modo: str = args['modo']
+    acessos: int = args['acessos']
+    paginas: int = args['paginas']
+    janela: int = args['janela']
+    semente: int = args['semente']
+
+    if acessos <= 0 or paginas <= 0:
+        print('Erro: --acessos e --paginas devem ser maiores que 0')
+        return 1
+    if janela <= 0 or janela > paginas:
+        print('Erro: --janela deve estar entre 1 e o número de páginas')
+        return 1
+
+    if modo == 'sequencial':
+        seq: list[int] = gerar_sequencial(acessos, paginas)
+        cabecalho: str = f'modo=sequencial acessos={acessos} paginas={paginas}'
+    elif modo == 'aleatorio':
+        seq = gerar_aleatorio(acessos, paginas, semente)
+        cabecalho = f'modo=aleatorio acessos={acessos} paginas={paginas} semente={semente}'
+    elif modo == 'localidade':
+        seq = gerar_localidade(acessos, paginas, janela, semente)
+        cabecalho = f'modo=localidade acessos={acessos} paginas={paginas} janela={janela} semente={semente}'
     else:
-        seq = gerar_localidade(args.acessos, args.paginas, args.janela, args.semente)
-        cabecalho = f'modo=localidade acessos={args.acessos} paginas={args.paginas} janela={args.janela} semente={args.semente}'
-
-    try:
-        gravar_sequencia(seq, cabecalho, args.saida)
-    except OSError as erro:
-        print(f'Erro: {erro}', file=sys.stderr)
+        print('Erro: --modo deve ser sequencial, aleatorio ou localidade')
         return 1
+
+    gravar_sequencia(seq, cabecalho, args['saida'])
 
     return 0
 

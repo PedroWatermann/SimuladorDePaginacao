@@ -6,7 +6,6 @@ from algoritmos.segunda_chance import simular_segunda_chance
 from sequencia import ler_sequencia
 from simulador import Sequencia, Resultado
 from traco import traco_resumo
-import argparse
 import csv
 import os
 import sys
@@ -19,32 +18,73 @@ ALGORITMOS = {
     'lfu': simular_lfu,
 }
 
-def ler_argumentos(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Simulador de substituição de páginas')
-    parser.add_argument('--entrada', required=True, help='arquivo com a sequência de páginas')
-    parser.add_argument('--quadros', required=True, help='número de quadros: um valor (3), uma faixa (1-7) ou uma lista (1,2,4)')
-    parser.add_argument('--algoritmo', choices=ALGORITMOS, help='política de substituição (todas, se omitido)')
-    parser.add_argument('--csv', help='arquivo em que a tabela consolidada é gravada')
-    parser.add_argument('-q', '--quiet', action='store_true', help='mostra apenas os totais, sem o traço')
-    return parser.parse_args(argv)
+USO: str = 'Uso: python3 src/main.py --entrada ARQUIVO --quadros N [--algoritmo NOME] [--csv ARQUIVO] [-q]'
 
-def ler_quadros(texto: str) -> list[int]:
-    quadros: set[int] = set()
+def ler_argumentos(argv: list[str]) -> dict | None:
+    args: dict = {
+        'entrada': None,
+        'quadros': None,
+        'algoritmo': None,
+        'csv': None,
+        'quiet': False,
+    }
+
+    i: int = 0
+    while i < len(argv):
+        opcao: str = argv[i]
+
+        if opcao == '-q' or opcao == '--quiet':
+            args['quiet'] = True
+            i += 1
+        elif opcao == '--entrada' or opcao == '--quadros' or opcao == '--algoritmo' or opcao == '--csv':
+            if i + 1 >= len(argv):
+                print(f'Erro: falta o valor de {opcao}')
+                return None
+            nome: str = opcao[2:]
+            args[nome] = argv[i + 1]
+            i += 2
+        else:
+            print(f'Erro: opção desconhecida {opcao}')
+            print(USO)
+            return None
+
+    if args['entrada'] is None or args['quadros'] is None:
+        print('Erro: --entrada e --quadros são obrigatórios')
+        print(USO)
+        return None
+
+    return args
+
+def ler_quadros(texto: str) -> list[int] | None:
+    quadros: list[int] = []
 
     for parte in texto.split(','):
-        inicio, separador, fim = parte.partition('-')
-        try:
-            primeiro: int = int(inicio)
-            ultimo: int = int(fim) if separador else primeiro
-        except ValueError:
-            raise ValueError(f'"{parte}" não é um número de quadros válido (use 3, 1-7 ou 1,2,4)') from None
+        parte = parte.strip()
+
+        if '-' in parte:
+            limites: list[str] = parte.split('-')
+            if len(limites) != 2 or not limites[0].isdigit() or not limites[1].isdigit():
+                print(f'Erro: "{parte}" não é um número de quadros válido (use 3, 1-7 ou 1,2,4)')
+                return None
+            primeiro: int = int(limites[0])
+            ultimo: int = int(limites[1])
+        else:
+            if not parte.isdigit():
+                print(f'Erro: "{parte}" não é um número de quadros válido (use 3, 1-7 ou 1,2,4)')
+                return None
+            primeiro = int(parte)
+            ultimo = primeiro
 
         if primeiro <= 0 or ultimo < primeiro:
-            raise ValueError(f'"{parte}" não é um número de quadros válido (os valores devem ser maiores que 0 e estar em ordem crescente)')
+            print(f'Erro: "{parte}" não é um número de quadros válido (os valores devem ser maiores que 0 e estar em ordem crescente)')
+            return None
 
-        quadros.update(range(primeiro, ultimo + 1))
+        for n_quadros in range(primeiro, ultimo + 1):
+            if n_quadros not in quadros:
+                quadros.append(n_quadros)
 
-    return sorted(quadros)
+    quadros.sort()
+    return quadros
 
 def executar(seq: Sequencia, quadros: list[int], algoritmos: list[str], silencioso: bool) -> list[Resultado]:
     resultados: list[Resultado] = []
@@ -76,20 +116,30 @@ def gravar_csv(resultados: list[Resultado], caminho: str) -> None:
             escritor.writerow([r.algoritmo, r.n_quadros, r.referencias, r.faltas, r.acertos, f'{r.taxa_faltas:.2f}'])
 
 def main(argv: list[str]) -> int:
-    args = ler_argumentos(argv)
-
-    try:
-        seq: Sequencia = ler_sequencia(args.entrada)
-        quadros: list[int] = ler_quadros(args.quadros)
-        algoritmos: list[str] = [args.algoritmo] if args.algoritmo else list(ALGORITMOS)
-
-        resultados: list[Resultado] = executar(seq, quadros, algoritmos, args.quiet)
-
-        if args.csv:
-            gravar_csv(resultados, args.csv)
-    except (OSError, ValueError) as erro:
-        print(f'Erro: {erro}', file=sys.stderr)
+    args: dict | None = ler_argumentos(argv)
+    if args is None:
         return 1
+
+    if args['algoritmo'] is None:
+        algoritmos: list[str] = list(ALGORITMOS.keys())
+    elif args['algoritmo'] in ALGORITMOS:
+        algoritmos = [args['algoritmo']]
+    else:
+        print(f'Erro: algoritmo "{args["algoritmo"]}" desconhecido (use fifo, lru, otimo, segunda_chance ou lfu)')
+        return 1
+
+    seq: Sequencia | None = ler_sequencia(args['entrada'])
+    if seq is None:
+        return 1
+
+    quadros: list[int] | None = ler_quadros(args['quadros'])
+    if quadros is None:
+        return 1
+
+    resultados: list[Resultado] = executar(seq, quadros, algoritmos, args['quiet'])
+
+    if args['csv'] is not None:
+        gravar_csv(resultados, args['csv'])
 
     return 0
 

@@ -23,6 +23,7 @@ def simular_segunda_chance(seq: Sequencia, n_quadros: int, traco: Traco) -> Resu
 
         faltas += 1
 
+        # Zera o bit e avança enquanto R = 1. Se todas tiverem R = 1, dá a volta inteira e tira a mais antiga (igual ao FIFO)
         while quadros[proximo] is not None and referencia[quadros[proximo]] == 1:
             referencia[quadros[proximo]] = 0
             proximo = (proximo + 1) % n_quadros
@@ -32,6 +33,7 @@ def simular_segunda_chance(seq: Sequencia, n_quadros: int, traco: Traco) -> Resu
             del referencia[vitima]
 
         quadros[proximo] = pagina
+        # Convenção: o bit R é ligado na carga e a cada acerto
         referencia[pagina] = 1
         proximo = (proximo + 1) % n_quadros
 

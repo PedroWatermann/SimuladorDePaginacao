@@ -2,7 +2,14 @@ from simulador import Resultado
 from typing import TextIO
 
 def traco_linha(saida: TextIO, algoritmo: str, pagina: int, quadros: list[int | None], houve_falta: bool, vitima: int | None) -> None:
-    estado: str = ",".join("-" if quadro is None else str(quadro) for quadro in quadros)
+    textos: list[str] = []
+    for quadro in quadros:
+        if quadro is None:
+            textos.append("-")
+        else:
+            textos.append(str(quadro))
+    estado: str = ",".join(textos)
+
     linha: str = f"Ref: {pagina}\tQuadros: [{estado}]\t"
 
     if not houve_falta:
