@@ -1,5 +1,5 @@
 from simulador import Sequencia, Traco, Resultado
-from traco import traco_linha, traco_resumo
+from traco import traco_linha
 
 def simular_fifo(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
     if n_quadros <= 0:
@@ -33,8 +33,5 @@ def simular_fifo(seq: Sequencia, n_quadros: int, traco: Traco) -> Resultado:
         faltas=faltas,
         acertos=acertos
     )
-
-    if traco:
-        traco_resumo(traco, resultado)
 
     return resultado

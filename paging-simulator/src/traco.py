@@ -27,5 +27,6 @@ def traco_resumo(saida: TextIO, resultado: Resultado) -> None:
         f'Quadros: {resultado.n_quadros} | ' +
         f'Referencias: {resultado.referencias} | ' +
         f'Faltas: {resultado.faltas} | ' +
-        f'Taxa: {resultado.taxa_faltas:.2f}%\n'
+        f'Taxa: {resultado.taxa_faltas:.2f}% | ' +
+        f'Tempo: {resultado.tempo_decorrido:.2f} ms\n'
     )

@@ -13,6 +13,7 @@ class Resultado:
     n_quadros: int = 0
     faltas: int = 0
     acertos: int = 0
+    tempo_decorrido: float = 0.0
 
     @property
     def referencias(self) -> int:
