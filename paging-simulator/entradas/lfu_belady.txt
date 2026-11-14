@@ -1,0 +1,2 @@
+# sequência que provoca a Anomalia de Belady no LFU (2 e 3 quadros)
+1 1 2 3 2 3 5 1 5 1
